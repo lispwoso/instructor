@@ -1,10 +1,19 @@
 ---
-draft: False
-date: 2023-09-17
-categories:
-  - RAG
 authors:
-  - jxnl
+- jxnl
+categories:
+- LLM Techniques
+comments: true
+date: 2023-09-17
+description: 'Explore how to enhance Retrieval Augmented Generation (RAG) with query
+  understanding for smarter search solutions. '
+draft: false
+tags:
+- RAG
+- query understanding
+- LLMs
+- data modeling
+- Pydantic
 ---
 
 # RAG is more than just embedding search
@@ -226,6 +235,6 @@ This is not about fancy embedding tricks, it's just plain old information retrie
 
 ## What's Next?
 
-Here I want to show that `instructor`` isn’t just about data extraction. It’s a powerful framework for building a data model and integrating it with your LLM. Structured output is just the beginning — the untapped goldmine is skilled use of tools and APIs.
+Here I want to show that `instructor` isn’t just about data extraction. It’s a powerful framework for building a data model and integrating it with your LLM. Structured output is just the beginning — the untapped goldmine is skilled use of tools and APIs.
 
 If you enjoy the content or want to try out `instructor` please check out the [github](https://github.com/jxnl/instructor) and give us a star!

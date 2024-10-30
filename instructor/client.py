@@ -10,12 +10,14 @@ from typing import (
     Callable,
     overload,
     Union,
+    Literal,
     Any,
 )
 from collections.abc import Generator, Iterable, Awaitable, AsyncGenerator
 from typing_extensions import Self
 from pydantic import BaseModel
 from instructor.dsl.partial import Partial
+from instructor.hooks import Hooks, HookName
 
 
 T = TypeVar("T", bound=Union[BaseModel, "Iterable[Any]", "Partial[Any]"])
@@ -27,6 +29,7 @@ class Instructor:
     mode: instructor.Mode
     default_model: str | None = None
     provider: Provider
+    hooks: Hooks
 
     def __init__(
         self,
@@ -34,6 +37,7 @@ class Instructor:
         create: Callable[..., Any],
         mode: instructor.Mode = instructor.Mode.TOOLS,
         provider: Provider = Provider.OPENAI,
+        hooks: Hooks | None = None,
         **kwargs: Any,
     ):
         self.client = client
@@ -43,6 +47,55 @@ class Instructor:
             instructor.Mode.warn_mode_functions_deprecation()
         self.kwargs = kwargs
         self.provider = provider
+        self.hooks = hooks or Hooks()
+
+    def on(
+        self,
+        hook_name: (
+            HookName
+            | Literal[
+                "completion:kwargs",
+                "completion:response",
+                "completion:error",
+                "completion:last_attempt",
+                "parse:error",
+            ]
+        ),
+        handler: Callable[[Any], None],
+    ) -> None:
+        self.hooks.on(hook_name, handler)
+
+    def off(
+        self,
+        hook_name: (
+            HookName
+            | Literal[
+                "completion:kwargs",
+                "completion:response",
+                "completion:error",
+                "completion:last_attempt",
+                "parse:error",
+            ]
+        ),
+        handler: Callable[[Any], None],
+    ) -> None:
+        self.hooks.off(hook_name, handler)
+
+    def clear(
+        self,
+        hook_name: (
+            HookName
+            | Literal[
+                "completion:kwargs",
+                "completion:response",
+                "completion:error",
+                "completion:last_attempt",
+                "parse:error",
+            ]
+        )
+        | None = None,
+    ) -> None:
+        self.hooks.clear(hook_name)
 
     @property
     def chat(self) -> Self:
@@ -63,10 +116,10 @@ class Instructor:
         messages: list[ChatCompletionMessageParam],
         max_retries: int = 3,
         validation_context: dict[str, Any] | None = None,
+        context: dict[str, Any] | None = None,  # {{ edit_1 }}
         strict: bool = True,
         **kwargs: Any,
-    ) -> Awaitable[T]:
-        ...
+    ) -> Awaitable[T]: ...
 
     @overload
     def create(
@@ -75,10 +128,10 @@ class Instructor:
         messages: list[ChatCompletionMessageParam],
         max_retries: int = 3,
         validation_context: dict[str, Any] | None = None,
+        context: dict[str, Any] | None = None,  # {{ edit_1 }}
         strict: bool = True,
         **kwargs: Any,
-    ) -> T:
-        ...
+    ) -> T: ...
 
     @overload
     def create(
@@ -87,6 +140,7 @@ class Instructor:
         messages: list[ChatCompletionMessageParam],
         max_retries: int = 3,
         validation_context: dict[str, Any] | None = None,
+        context: dict[str, Any] | None = None,  # {{ edit_1 }}
         strict: bool = True,
         **kwargs: Any,
     ) -> Awaitable[Any]: ...
@@ -98,6 +152,7 @@ class Instructor:
         messages: list[ChatCompletionMessageParam],
         max_retries: int = 3,
         validation_context: dict[str, Any] | None = None,
+        context: dict[str, Any] | None = None,  # {{ edit_1 }}
         strict: bool = True,
         **kwargs: Any,
     ) -> Any: ...
@@ -108,6 +163,7 @@ class Instructor:
         messages: list[ChatCompletionMessageParam],
         max_retries: int = 3,
         validation_context: dict[str, Any] | None = None,
+        context: dict[str, Any] | None = None,
         strict: bool = True,
         **kwargs: Any,
     ) -> T | Any | Awaitable[T] | Awaitable[Any]:
@@ -118,7 +174,9 @@ class Instructor:
             messages=messages,
             max_retries=max_retries,
             validation_context=validation_context,
+            context=context,
             strict=strict,
+            hooks=self.hooks,
             **kwargs,
         )
 
@@ -129,10 +187,10 @@ class Instructor:
         messages: list[ChatCompletionMessageParam],
         max_retries: int = 3,
         validation_context: dict[str, Any] | None = None,
+        context: dict[str, Any] | None = None,  # {{ edit_1 }}
         strict: bool = True,
         **kwargs: Any,
-    ) -> AsyncGenerator[T, None]:
-        ...
+    ) -> AsyncGenerator[T, None]: ...
 
     @overload
     def create_partial(
@@ -140,18 +198,19 @@ class Instructor:
         response_model: type[T],
         messages: list[ChatCompletionMessageParam],
         max_retries: int = 3,
-        validation_context: dict[str, Any] | None = None,
+        validation_context: dict[str, Any] | None = None,  # Deprecate in 2.0
+        context: dict[str, Any] | None = None,
         strict: bool = True,
         **kwargs: Any,
-    ) -> Generator[T, None, None]:
-        ...
+    ) -> Generator[T, None, None]: ...
 
     def create_partial(
         self,
         response_model: type[T],
         messages: list[ChatCompletionMessageParam],
         max_retries: int = 3,
-        validation_context: dict[str, Any] | None = None,
+        validation_context: dict[str, Any] | None = None,  # Deprecate in 2.0
+        context: dict[str, Any] | None = None,
         strict: bool = True,
         **kwargs: Any,
     ) -> Generator[T, None, None] | AsyncGenerator[T, None]:
@@ -165,7 +224,9 @@ class Instructor:
             response_model=response_model,
             max_retries=max_retries,
             validation_context=validation_context,
+            context=context,
             strict=strict,
+            hooks=self.hooks,
             **kwargs,
         )
 
@@ -175,11 +236,11 @@ class Instructor:
         messages: list[ChatCompletionMessageParam],
         response_model: type[T],
         max_retries: int = 3,
-        validation_context: dict[str, Any] | None = None,
+        validation_context: dict[str, Any] | None = None,  # Deprecate in 2.0
+        context: dict[str, Any] | None = None,
         strict: bool = True,
         **kwargs: Any,
-    ) -> AsyncGenerator[T, None]:
-        ...
+    ) -> AsyncGenerator[T, None]: ...
 
     @overload
     def create_iterable(
@@ -187,18 +248,19 @@ class Instructor:
         messages: list[ChatCompletionMessageParam],
         response_model: type[T],
         max_retries: int = 3,
-        validation_context: dict[str, Any] | None = None,
+        validation_context: dict[str, Any] | None = None,  # Deprecate in 2.0
+        context: dict[str, Any] | None = None,
         strict: bool = True,
         **kwargs: Any,
-    ) -> Generator[T, None, None]:
-        ...
+    ) -> Generator[T, None, None]: ...
 
     def create_iterable(
         self,
         messages: list[ChatCompletionMessageParam],
         response_model: type[T],
         max_retries: int = 3,
-        validation_context: dict[str, Any] | None = None,
+        validation_context: dict[str, Any] | None = None,  # Deprecate in 2.0
+        context: dict[str, Any] | None = None,
         strict: bool = True,
         **kwargs: Any,
     ) -> Generator[T, None, None] | AsyncGenerator[T, None]:
@@ -211,7 +273,9 @@ class Instructor:
             response_model=response_model,
             max_retries=max_retries,
             validation_context=validation_context,
+            context=context,
             strict=strict,
+            hooks=self.hooks,
             **kwargs,
         )
 
@@ -221,11 +285,11 @@ class Instructor:
         messages: list[ChatCompletionMessageParam],
         response_model: type[T],
         max_retries: int = 3,
-        validation_context: dict[str, Any] | None = None,
+        validation_context: dict[str, Any] | None = None,  # Deprecate in 2.0
+        context: dict[str, Any] | None = None,
         strict: bool = True,
         **kwargs: Any,
-    ) -> Awaitable[tuple[T, Any]]:
-        ...
+    ) -> Awaitable[tuple[T, Any]]: ...
 
     @overload
     def create_with_completion(
@@ -233,18 +297,19 @@ class Instructor:
         messages: list[ChatCompletionMessageParam],
         response_model: type[T],
         max_retries: int = 3,
-        validation_context: dict[str, Any] | None = None,
+        validation_context: dict[str, Any] | None = None,  # Deprecate in 2.0
+        context: dict[str, Any] | None = None,
         strict: bool = True,
         **kwargs: Any,
-    ) -> tuple[T, Any]:
-        ...
+    ) -> tuple[T, Any]: ...
 
     def create_with_completion(
         self,
         messages: list[ChatCompletionMessageParam],
         response_model: type[T],
         max_retries: int = 3,
-        validation_context: dict[str, Any] | None = None,
+        validation_context: dict[str, Any] | None = None,  # Deprecate in 2.0
+        context: dict[str, Any] | None = None,
         strict: bool = True,
         **kwargs: Any,
     ) -> tuple[T, Any] | Awaitable[tuple[T, Any]]:
@@ -254,16 +319,30 @@ class Instructor:
             response_model=response_model,
             max_retries=max_retries,
             validation_context=validation_context,
+            context=context,
             strict=strict,
+            hooks=self.hooks,
             **kwargs,
         )
         return model, model._raw_response
 
     def handle_kwargs(self, kwargs: dict[str, Any]) -> dict[str, Any]:
+        """
+        Handle and process keyword arguments for the API call.
+
+        This method merges the provided kwargs with the default kwargs stored in the instance.
+        It ensures that any kwargs passed to the method call take precedence over the default ones.
+        """
         for key, value in self.kwargs.items():
             if key not in kwargs:
                 kwargs[key] = value
         return kwargs
+
+    def __getattr__(self, attr: str) -> Any:
+        if attr not in {"create", "chat", "messages"}:
+            return getattr(self.client, attr)
+
+        return getattr(self, attr)
 
 
 class AsyncInstructor(Instructor):
@@ -272,6 +351,7 @@ class AsyncInstructor(Instructor):
     mode: instructor.Mode
     default_model: str | None = None
     provider: Provider
+    hooks: Hooks
 
     def __init__(
         self,
@@ -279,6 +359,7 @@ class AsyncInstructor(Instructor):
         create: Callable[..., Any],
         mode: instructor.Mode = instructor.Mode.TOOLS,
         provider: Provider = Provider.OPENAI,
+        hooks: Hooks | None = None,
         **kwargs: Any,
     ):
         self.client = client
@@ -286,13 +367,15 @@ class AsyncInstructor(Instructor):
         self.mode = mode
         self.kwargs = kwargs
         self.provider = provider
+        self.hooks = hooks or Hooks()
 
     async def create(
         self,
         response_model: type[T] | None,
         messages: list[ChatCompletionMessageParam],
         max_retries: int = 3,
-        validation_context: dict[str, Any] | None = None,
+        validation_context: dict[str, Any] | None = None,  # Deprecate in 2.0
+        context: dict[str, Any] | None = None,
         strict: bool = True,
         **kwargs: Any,
     ) -> T | Any:
@@ -300,9 +383,11 @@ class AsyncInstructor(Instructor):
         return await self.create_fn(
             response_model=response_model,
             validation_context=validation_context,
+            context=context,
             max_retries=max_retries,
             messages=messages,
             strict=strict,
+            hooks=self.hooks,
             **kwargs,
         )
 
@@ -311,7 +396,8 @@ class AsyncInstructor(Instructor):
         response_model: type[T],
         messages: list[ChatCompletionMessageParam],
         max_retries: int = 3,
-        validation_context: dict[str, Any] | None = None,
+        validation_context: dict[str, Any] | None = None,  # Deprecate in 2.0
+        context: dict[str, Any] | None = None,
         strict: bool = True,
         **kwargs: Any,
     ) -> AsyncGenerator[T, None]:
@@ -320,9 +406,11 @@ class AsyncInstructor(Instructor):
         async for item in await self.create_fn(
             response_model=instructor.Partial[response_model],  # type: ignore
             validation_context=validation_context,
+            context=context,
             max_retries=max_retries,
             messages=messages,
             strict=strict,
+            hooks=self.hooks,
             **kwargs,
         ):
             yield item
@@ -332,7 +420,8 @@ class AsyncInstructor(Instructor):
         messages: list[ChatCompletionMessageParam],
         response_model: type[T],
         max_retries: int = 3,
-        validation_context: dict[str, Any] | None = None,
+        validation_context: dict[str, Any] | None = None,  # Deprecate in 2.0
+        context: dict[str, Any] | None = None,
         strict: bool = True,
         **kwargs: Any,
     ) -> AsyncGenerator[T, None]:
@@ -341,9 +430,11 @@ class AsyncInstructor(Instructor):
         async for item in await self.create_fn(
             response_model=Iterable[response_model],
             validation_context=validation_context,
+            context=context,
             max_retries=max_retries,
             messages=messages,
             strict=strict,
+            hooks=self.hooks,
             **kwargs,
         ):
             yield item
@@ -353,7 +444,8 @@ class AsyncInstructor(Instructor):
         messages: list[ChatCompletionMessageParam],
         response_model: type[T],
         max_retries: int = 3,
-        validation_context: dict[str, Any] | None = None,
+        validation_context: dict[str, Any] | None = None,  # Deprecate in 2.0
+        context: dict[str, Any] | None = None,
         strict: bool = True,
         **kwargs: Any,
     ) -> tuple[T, Any]:
@@ -361,9 +453,11 @@ class AsyncInstructor(Instructor):
         response = await self.create_fn(
             response_model=response_model,
             validation_context=validation_context,
+            context=context,
             max_retries=max_retries,
             messages=messages,
             strict=strict,
+            hooks=self.hooks,
             **kwargs,
         )
         return response, response._raw_response
@@ -413,12 +507,7 @@ def from_openai(
             instructor.Mode.MD_JSON,
         }
 
-    if provider in {Provider.DATABRICKS}:
-        assert mode in {
-            instructor.Mode.MD_JSON
-        }, "Databricks provider only supports `MD_JSON` mode."
-
-    if provider in {Provider.OPENAI}:
+    if provider in {Provider.OPENAI, Provider.DATABRICKS}:
         assert mode in {
             instructor.Mode.TOOLS,
             instructor.Mode.JSON,
@@ -426,6 +515,7 @@ def from_openai(
             instructor.Mode.PARALLEL_TOOLS,
             instructor.Mode.MD_JSON,
             instructor.Mode.TOOLS_STRICT,
+            instructor.Mode.JSON_O1,
         }
 
     if isinstance(client, openai.OpenAI):
@@ -452,8 +542,7 @@ def from_litellm(
     completion: Callable[..., Any],
     mode: instructor.Mode = instructor.Mode.TOOLS,
     **kwargs: Any,
-) -> Instructor:
-    ...
+) -> Instructor: ...
 
 
 @overload

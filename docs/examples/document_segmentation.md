@@ -1,3 +1,8 @@
+---
+title: Document Segmentation with LLMs: A Comprehensive Guide
+description: Learn effective document segmentation techniques using Cohere's LLM, enhancing comprehension of complex texts.
+---
+
 # Document Segmentation
 
 In this guide, we demonstrate how to do document segmentation using structured output from an LLM. We'll be using [command-r-plus](https://docs.cohere.com/docs/command-r-plus) - one of Cohere's latest LLMs with 128k context length and testing the approach on an article explaining the Transformer architecture. Same approach to document segmentation can be applied to any other domain where we need to break down a complex long document into smaller chunks.
@@ -13,7 +18,8 @@ Note that in order to avoid LLM regenerating the content of each section, we can
 
 ```python
 from pydantic import BaseModel, Field
-from typing import List, Dict, Any
+from typing import List
+
 
 class Section(BaseModel):
     title: str = Field(description="main topic of this section of the document")
@@ -23,6 +29,7 @@ class Section(BaseModel):
 
 class StructuredDocument(BaseModel):
     """obtains meaningful sections, each centered around a single concept/topic"""
+
     sections: List[Section] = Field(description="a list of sections of the document")
 ```
 
@@ -46,6 +53,25 @@ def doc_with_lines(document):
 Next use a Cohere client to extract `StructuredDocument` from the preprocessed doc.
 
 ```python
+# <%hide%>
+from pydantic import BaseModel, Field
+from typing import List
+
+
+class Section(BaseModel):
+    title: str = Field(description="main topic of this section of the document")
+    start_index: int = Field(description="line number where the section begins")
+    end_index: int = Field(description="line number where the section ends")
+
+
+class StructuredDocument(BaseModel):
+    """obtains meaningful sections, each centered around a single concept/topic"""
+
+    sections: List[Section] = Field(description="a list of sections of the document")
+
+
+# <%hide%>
+
 import instructor
 import cohere
 
@@ -87,13 +113,15 @@ def get_sections_text(structured_doc, line2text):
     for s in structured_doc.sections:
         contents = []
         for line_id in range(s.start_index, s.end_index):
-                contents.append(line2text.get(line_id, ''))
-        segments.append({
-            "title": s.title,
-            "content": "\n".join(contents),
-            "start": s.start_index,
-            "end": s.end_index
-        })
+            contents.append(line2text.get(line_id, ''))
+        segments.append(
+            {
+                "title": s.title,
+                "content": "\n".join(contents),
+                "start": s.start_index,
+                "end": s.end_index,
+            }
+        )
     return segments
 ```
 
@@ -105,8 +133,82 @@ Here's an example of using these classes and functions to segment a tutorial on 
 ```python
 from trafilatura import fetch_url, extract
 
+# <%hide%>
+import instructor
+import cohere
+from pydantic import BaseModel, Field
+from typing import List
 
-url='https://sebastianraschka.com/blog/2023/self-attention-from-scratch.html'
+
+def doc_with_lines(document):
+    document_lines = document.split("\n")
+    document_with_line_numbers = ""
+    line2text = {}
+    for i, line in enumerate(document_lines):
+        document_with_line_numbers += f"[{i}] {line}\n"
+        line2text[i] = line
+    return document_with_line_numbers, line2text
+
+
+client = instructor.from_cohere(cohere.Client())
+
+
+system_prompt = f"""\
+You are a world class educator working on organizing your lecture notes.
+Read the document below and extract a StructuredDocument object from it where each section of the document is centered around a single concept/topic that can be taught in one lesson.
+Each line of the document is marked with its line number in square brackets (e.g. [1], [2], [3], etc). Use the line numbers to indicate section start and end.
+"""
+
+
+class Section(BaseModel):
+    title: str = Field(description="main topic of this section of the document")
+    start_index: int = Field(description="line number where the section begins")
+    end_index: int = Field(description="line number where the section ends")
+
+
+class StructuredDocument(BaseModel):
+    """obtains meaningful sections, each centered around a single concept/topic"""
+
+    sections: List[Section] = Field(description="a list of sections of the document")
+
+
+def get_structured_document(document_with_line_numbers) -> StructuredDocument:
+    return client.chat.completions.create(
+        model="command-r-plus",
+        response_model=StructuredDocument,
+        messages=[
+            {
+                "role": "system",
+                "content": system_prompt,
+            },
+            {
+                "role": "user",
+                "content": document_with_line_numbers,
+            },
+        ],
+    )  # type: ignore
+
+
+def get_sections_text(structured_doc, line2text):
+    segments = []
+    for s in structured_doc.sections:
+        contents = []
+        for line_id in range(s.start_index, s.end_index):
+            contents.append(line2text.get(line_id, ''))
+        segments.append(
+            {
+                "title": s.title,
+                "content": "\n".join(contents),
+                "start": s.start_index,
+                "end": s.end_index,
+            }
+        )
+    return segments
+
+
+# <%hide%>
+
+url = 'https://sebastianraschka.com/blog/2023/self-attention-from-scratch.html'
 downloaded = fetch_url(url)
 document = extract(downloaded)
 

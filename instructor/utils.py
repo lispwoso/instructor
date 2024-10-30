@@ -10,8 +10,12 @@ from typing import (
     Callable,
     Generic,
     Protocol,
+    Union,
+    TypedDict,
     TypeVar,
+    cast
 )
+from pydantic import BaseModel
 import os
 
 from openai.types import CompletionUsage as OpenAIUsage
@@ -47,6 +51,8 @@ class Provider(Enum):
     COHERE = "cohere"
     GEMINI = "gemini"
     DATABRICKS = "databricks"
+    CEREBRAS = "cerebras"
+    FIREWORKS = "fireworks"
     UNKNOWN = "unknown"
 
 
@@ -57,6 +63,10 @@ def get_provider(base_url: str) -> Provider:
         return Provider.TOGETHER
     elif "anthropic" in str(base_url):
         return Provider.ANTHROPIC
+    elif "cerebras" in str(base_url):
+        return Provider.CEREBRAS
+    elif "fireworks" in str(base_url):
+        return Provider.FIREWORKS
     elif "groq" in str(base_url):
         return Provider.GROQ
     elif "openai" in str(base_url):
@@ -121,9 +131,12 @@ async def extract_json_from_stream_async(
 
 
 def update_total_usage(
-    response: T_Model,
+    response: T_Model | None,
     total_usage: OpenAIUsage | AnthropicUsage,
-) -> T_Model | ChatCompletion:
+) -> T_Model | ChatCompletion | None:
+    if response is None:
+        return None
+
     response_usage = getattr(response, "usage", None)
     if isinstance(response_usage, OpenAIUsage) and isinstance(total_usage, OpenAIUsage):
         total_usage.completion_tokens += response_usage.completion_tokens or 0
@@ -238,6 +251,18 @@ class classproperty(Generic[R_co]):
         return self.cproperty(cls)
 
 
+def get_message_content(message: ChatCompletionMessageParam) -> list[Any]:
+    content = message.get("content", "")
+    try:
+        if isinstance(content, list):
+            return content
+        else:
+            return [content]
+    except Exception as e:
+        logging.debug(f"Error getting message content: {e}")
+        return [content]
+
+
 def transform_to_gemini_prompt(
     messages_chatgpt: list[ChatCompletionMessageParam],
 ) -> list[dict[str, Any]]:
@@ -248,17 +273,150 @@ def transform_to_gemini_prompt(
             system_prompt = message["content"]
         elif message["role"] == "user":
             messages_gemini.append(
-                {"role": "user", "parts": [message.get("content", "")]}
+                {"role": "user", "parts": get_message_content(message)}
             )
         elif message["role"] == "assistant":
             messages_gemini.append(
-                {"role": "model", "parts": [message.get("content", "")]}
+                {"role": "model", "parts": get_message_content(message)}
             )
+
     if system_prompt:
-        messages_gemini[0]["parts"].insert(0, f"*{system_prompt}*")
+        if messages_gemini:
+            messages_gemini[0]["parts"].insert(0, f"*{system_prompt}*")
+        else:
+            messages_gemini.append({"role": "user", "parts": [f"*{system_prompt}*"]})
 
     return messages_gemini
 
 
+def map_to_gemini_function_schema(obj: dict[str, Any]) -> dict[str, Any]:
+    """
+    Map OpenAPI schema to Gemini properties: gemini function call schemas
+
+    Ref - https://ai.google.dev/api/python/google/generativeai/protos/Schema,
+    Note that `enum` requires specific `format` setting
+    """
+
+    import jsonref
+
+    class FunctionSchema(BaseModel):
+        description: str | None = None
+        enum: list[str] | None = None
+        example: Any | None = None
+        format: str | None = None
+        nullable: bool | None = None
+        items: FunctionSchema | None = None
+        required: list[str] | None = None
+        type: str
+        properties: dict[str, FunctionSchema] | None = None
+
+    schema: dict[str, Any] = jsonref.replace_refs(obj, lazy_load=False)  # type: ignore
+    schema.pop("$defs", "")
+
+    def add_enum_format(obj: dict[str, Any]) -> dict[str, Any]:
+        if isinstance(obj, dict):
+            new_dict: dict[str, Any] = {}
+            for key, value in obj.items():
+                new_dict[key] = add_enum_format(value)
+                if key == "enum":
+                    new_dict["format"] = "enum"
+            return new_dict
+        else:
+            return obj
+
+    schema = add_enum_format(schema)
+
+    return FunctionSchema(**schema).model_dump(exclude_none=True, exclude_unset=True)
+
+
+def update_gemini_kwargs(kwargs: dict[str, Any]) -> dict[str, Any]:
+    if "generation_config" in kwargs:
+        map_openai_args_to_gemini = {
+            "max_tokens": "max_output_tokens",
+            "temperature": "temperature",
+            "n": "candidate_count",
+            "top_p": "top_p",
+            "stop": "stop_sequences",
+        }
+
+        # update gemini config if any params are set
+        for k, v in map_openai_args_to_gemini.items():
+            val = kwargs["generation_config"].pop(k, None)
+            if val == None:
+                continue
+            kwargs["generation_config"][v] = val
+
+    # gemini has a different prompt format and params from other providers
+    kwargs["contents"] = transform_to_gemini_prompt(kwargs.pop("messages"))
+
+    # minimize gemini safety related errors - model is highly prone to false alarms
+    from google.generativeai.types import HarmCategory, HarmBlockThreshold  # type: ignore
+
+    kwargs["safety_settings"] = kwargs.get("safety_settings", {})
+
+    fallback_safety_settings = {
+        HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+        HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+        HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+    }
+
+    # Update or add fallback settings, respecting stricter existing ones
+    for category, fallback_threshold in fallback_safety_settings.items():
+        current_threshold = kwargs["safety_settings"].get(category)
+        if current_threshold is None or current_threshold < fallback_threshold:
+            kwargs["safety_settings"][category] = fallback_threshold
+
+    return kwargs
+
+
 def disable_pydantic_error_url():
     os.environ["PYDANTIC_ERRORS_INCLUDE_URL"] = "0"
+
+
+class SystemMessage(TypedDict, total=False):
+    type: str
+    text: str
+    cache_control: dict[str, str]
+
+
+def combine_system_messages(
+    existing_system: Union[str, list[SystemMessage], None],  # noqa: UP007
+    new_system: Union[str, list[SystemMessage]],  # noqa: UP007
+) -> Union[str, list[SystemMessage]]:  # noqa: UP007
+    if existing_system is None:
+        return new_system
+
+    if isinstance(existing_system, str) and isinstance(new_system, str):
+        return f"{existing_system}\n\n{new_system}"
+
+    if isinstance(existing_system, list) and isinstance(new_system, list):
+        return existing_system + new_system
+
+    if isinstance(existing_system, str) and isinstance(new_system, list):
+        return [SystemMessage(type="text", text=existing_system)] + new_system
+
+    if isinstance(existing_system, list) and isinstance(new_system, str):
+        return existing_system + [SystemMessage(type="text", text=new_system)]
+
+    raise ValueError("Unsupported system message type combination")
+
+
+def extract_system_messages(messages: list[dict[str, Any]]) -> list[SystemMessage]:
+    def convert_message(content: Union[str, dict[str, Any]]) -> SystemMessage:  # noqa: UP007
+        if isinstance(content, str):
+            return SystemMessage(type="text", text=content)
+        elif isinstance(content, dict):
+            return SystemMessage(**content)
+        else:
+            raise ValueError(f"Unsupported content type: {type(content)}")
+
+    result: list[SystemMessage] = []
+    for m in messages:
+        if m["role"] == "system":
+            # System message must always be a string or list of dictionaries
+            content = cast(Union[str, list[dict[str, Any]]], m["content"])  # noqa: UP007
+            if isinstance(content, list):
+                result.extend(convert_message(item) for item in content)
+            else:
+                result.append(convert_message(content))
+    return result

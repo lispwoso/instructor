@@ -1,11 +1,20 @@
 ---
-draft: False
+authors:
+- ivanleomk
+categories:
+- OpenAI
+comments: true
 date: 2024-08-20
+description: Explore the challenges of OpenAI's Structured Outputs and how 'instructor'
+  offers solutions for LLM workflows.
+draft: false
 slug: should-i-be-using-structured-outputs
 tags:
-  - OpenAI
-authors:
-  - ivanleomk
+- OpenAI
+- Structured Outputs
+- Pydantic
+- Data Validation
+- LLM Techniques
 ---
 
 # Should I Be Using Structured Outputs?
@@ -179,7 +188,7 @@ print(resp)
 #> name='JASON' age=25
 ```
 
-This built-in retry logic allows for targetted correction to the generated response, ensuring that outputs are not only consistent with your schema but also corect for your use-case. This is invaluable in building reliable LLM systems.
+This built-in retry logic allows for targetted correction to the generated response, ensuring that outputs are not only consistent with your schema but also correct for your use-case. This is invaluable in building reliable LLM systems.
 
 ### Real-time Streaming Validation
 
@@ -240,7 +249,7 @@ During the meeting, we agreed on several key points. The conference will be held
 
 The budget for the event is set at $50,000, covering venue costs, speaker fees, and promotional activities. Each participant is expected to contribute an article to the conference blog by February 20th.
 
-A follow-up meetingis scheduled for January 25th at 3 PM GMT to finalize the agenda and confirm the list of speakers.
+A follow-up meeting is scheduled for January 25th at 3 PM GMT to finalize the agenda and confirm the list of speakers.
 """
 
 

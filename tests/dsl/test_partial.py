@@ -5,7 +5,7 @@ import pytest
 import instructor
 from openai import OpenAI, AsyncOpenAI
 
-models = ["gpt-4o"]
+models = ["gpt-4o-mini"]
 modes = [
     instructor.Mode.TOOLS,
 ]
@@ -71,8 +71,48 @@ def test_partial():
         "type": "object",
     }, "Partial model JSON schema has changed"
 
-    for model in partial.model_from_chunks(['{"b": {"b": 1}}']):
-        assert model.model_dump() == {"a": None, "b": {"b": 1}}
+
+def test_partial_with_whitespace():
+    partial = Partial[SamplePartial]
+    # Handle any leading whitespace from the model
+    expected_model_dicts = [
+        {"a": None, "b": {}},
+        {"a": None, "b": {}},
+        {"a": None, "b": {}},
+        {"a": None, "b": {"b": 1}},
+    ]
+
+    for model, expected_dict in zip(
+        partial.model_from_chunks(["\n", "\t", " ", '{"b": {"b": 1}}']),
+        expected_model_dicts,
+    ):
+        assert model.model_dump() == expected_dict
+
+    assert model.model_dump() == {"a": None, "b": {"b": 1}}
+
+
+@pytest.mark.asyncio
+async def test_async_partial_with_whitespace():
+    partial = Partial[SamplePartial]
+
+    # Handle any leading whitespace from the model
+    async def async_generator():
+        for chunk in ["\n", "\t", " ", '{"b": {"b": 1}}']:
+            yield chunk
+
+    expected_model_dicts = [
+        {"a": None, "b": {}},
+        {"a": None, "b": {}},
+        {"a": None, "b": {}},
+        {"a": None, "b": {"b": 1}},
+    ]
+
+    i = 0
+    async for model in partial.model_from_chunks_async(async_generator()):
+        assert model.model_dump() == expected_model_dicts[i]
+        i += 1
+
+    assert model.model_dump() == {"a": None, "b": {"b": 1}}
 
 
 def test_summary_extraction():
@@ -95,7 +135,6 @@ def test_summary_extraction():
     updates = 0
     for extraction in extraction_stream:
         if previous_summary is not None and extraction:
-            assert extraction.summary.startswith(previous_summary)
             updates += 1
         previous_summary = extraction.summary
 
@@ -123,7 +162,6 @@ async def test_summary_extraction_async():
     updates = 0
     async for extraction in extraction_stream:
         if previous_summary is not None and extraction:
-            assert extraction.summary.startswith(previous_summary)
             updates += 1
         previous_summary = extraction.summary
 

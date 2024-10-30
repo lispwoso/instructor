@@ -3,6 +3,7 @@ import importlib.util
 from .mode import Mode
 from .process_response import handle_response_model
 from .distil import FinetuneFormat, Instructions
+from .multimodal import Image, Audio
 from .dsl import (
     CitationMixin,
     Maybe,
@@ -24,6 +25,8 @@ from .client import (
 
 __all__ = [
     "Instructor",
+    "Image",
+    "Audio",
     "from_openai",
     "from_litellm",
     "AsyncInstructor",
@@ -58,6 +61,16 @@ if (
     from .client_gemini import from_gemini
 
     __all__ += ["from_gemini"]
+
+if importlib.util.find_spec("fireworks") is not None:
+    from .client_fireworks import from_fireworks
+
+    __all__ += ["from_fireworks"]
+
+if importlib.util.find_spec("cerebras") is not None:
+    from .client_cerebras import from_cerebras
+
+    __all__ += ["from_cerebras"]
 
 if importlib.util.find_spec("groq") is not None:
     from .client_groq import from_groq

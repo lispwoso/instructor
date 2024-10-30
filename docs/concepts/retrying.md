@@ -1,3 +1,8 @@
+---
+title: Implementing Effective Retry Logic with Pydantic and Tenacity
+description: Learn how to establish simple and advanced retry strategies in Python using Pydantic and Tenacity for robust application behavior.
+---
+
 # Retrying
 
 One of the benefits of having Pydantic is the ease with which we can define validators. We cover this topic in many articles, like [Reasking Validation](./reask_validation.md) and in our blog post [Good LLM validation is just good validation](../blog/posts/validation-part1.md).
@@ -7,8 +12,6 @@ This post will mostly describe how to use simple and more complex retry and logi
 ## Example of a Validator
 
 Before we begin, we'll use a simple example of a validator. One that checks that the name is in all caps. While we could obviously prompt that we want the name in all caps, this serves as an example of how we can build in additional logic without changing our prompts.
-
-To use simple retry, we just need to set `max_retries`` as an integer. In this example.
 
 ```python
 from typing import Annotated
@@ -40,7 +43,7 @@ except Exception as e:
 
 ## Simple: Max Retries
 
-The simplest way of defining a retry is just defining the maximum number of retries.
+The simplest way to set up retries is to assign an integer value to `max_retries`.
 
 ```python
 import openai

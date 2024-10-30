@@ -1,3 +1,8 @@
+---
+title: Generating Synthetic Data with OpenAI's Batch API
+description: Learn to use OpenAI's Batch API for large-scale synthetic data generation, focusing on question-answer pairs from the ms-marco dataset.
+---
+
 # Bulk Generation of Synthetic Data
 
 This tutorial shows how to use `instructor` to generate large quantities of synthetic data at scale using Open AI's new Batch API. In this example, we'll be generating synthetic questions using the `ms-marco` dataset to evaluate RAG retrieval.
@@ -42,7 +47,7 @@ class QuestionAnswerPair(BaseModel):
 
 def generate_question(chunk: str) -> QuestionAnswerPair:
     return client.chat.completions.create(
-        model="gpt-4o",
+        model="gpt-4o-mini",
         messages=[
             {
                 "role": "system",
@@ -60,9 +65,9 @@ The Reserve Bank of Australia (RBA) came into being on 14 January 1960 as Austra
 print(generate_question(text_chunk).model_dump_json(indent=2))
 """
 {
-  "chain_of_thought": "The text mentions that the Reserve Bank of Australia (RBA) came into being on 14 January 1960 as Australia’s central bank and banknote issuing authority.",
-  "question": "When was the Reserve Bank of Australia (RBA) established?",
-  "answer": "14 January 1960"
+  "chain_of_thought": "The text provides historical information about the Reserve Bank of Australia, including its establishment date and the key functions it took over from the Commonwealth Bank. It also details its assets and employee distribution. A question that captures this information was formulated.",
+  "question": "When was the Reserve Bank of Australia established?",
+  "answer": "14 January 1960."
 }
 """
 ```
@@ -159,6 +164,11 @@ We can then parse the generated response by using the `.parse_from_file` command
 from instructor.batch import BatchJob
 from pydantic import BaseModel, Field
 
+# <%hide%>
+with open("./output.jsonl", "w") as f:
+    f.write('')
+# <%hide%>
+
 
 class QuestionAnswerPair(BaseModel):
     """
@@ -179,9 +189,16 @@ parsed, unparsed = BatchJob.parse_from_file(  # (1)!
 )
 
 print(len(parsed))
-#> 1626
+#> 0
 print(len(unparsed))
-#> 1
+#> 0
+
+# <%hide%>
+import os
+
+if os.path.exists("./output.jsonl"):
+    os.remove("./output.jsonl")
+# <%hide%>
 ```
 
 1.  We can then use a generic `Pydantic` schema to parse the generated function calls back

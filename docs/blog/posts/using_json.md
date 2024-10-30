@@ -1,21 +1,29 @@
 ---
-draft: False
+authors:
+- jxnl
+categories:
+- LLM Techniques
+comments: true
 date: 2024-06-15
+description: Learn how to easily get structured JSON data from LLMs using the Instructor
+  library with Pydantic models in Python.
+draft: false
 slug: zero-cost-abstractions
 tags:
-  - python
-  - llms
-authors:
-  - jxnl
+- Instructor
+- JSON
+- LLM
+- Pydantic
+- Python
 ---
 
 # Why Instructor is the best way to get JSON from LLMs
 
 Large Language Models (LLMs) like GPT are incredibly powerful, but getting them to return well-formatted JSON can be challenging. This is where the Instructor library shines. Instructor allows you to easily map LLM outputs to JSON data using Python type annotations and Pydantic models.
 
-Instructor makes it easy to get structured data like JSON from LLMs like GPT-3.5, GPT-4, GPT-4-Vision, and open-source models including [Mistral/Mixtral](./hub/together.md), [Anyscale](./hub/anyscale.md), [Ollama](./hub/ollama.md), and [llama-cpp-python](./hub/llama-cpp-python.md).
+Instructor makes it easy to get structured data like JSON from LLMs like GPT-3.5, GPT-4, GPT-4-Vision, and open-source models including [Mistral/Mixtral](../../hub/together.md), [Anyscale](../../hub/anyscale.md), [Ollama](../../hub/ollama.md), and [llama-cpp-python](../../hub/llama-cpp-python.md).
 
-It stands out for its simplicity, transparency, and user-centric design, built on top of Pydantic. Instructor helps you manage [validation context](./concepts/reask_validation.md), retries with [Tenacity](./concepts/retrying.md), and streaming [Lists](./concepts/lists.md) and [Partial](./concepts/partial.md) responses.
+It stands out for its simplicity, transparency, and user-centric design, built on top of Pydantic. Instructor helps you manage [validation context](../../concepts/reask_validation.md), retries with [Tenacity](../../concepts/retrying.md), and streaming [Lists](../../concepts/lists.md) and [Partial](../../concepts/partial.md) responses.
 
 - Instructor provides support for a wide range of programming languages, including:
   - [Python](https://python.useinstructor.com)

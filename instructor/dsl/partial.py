@@ -105,7 +105,7 @@ class PartialBase(Generic[T_Model]):
     ) -> Generator[T_Model, None, None]:
         json_chunks = cls.extract_json(completion, mode)
 
-        if mode == Mode.MD_JSON:
+        if mode in {Mode.MD_JSON, Mode.GEMINI_TOOLS}:
             json_chunks = extract_json_from_stream(json_chunks)
 
         yield from cls.model_from_chunks(json_chunks, **kwargs)
@@ -129,9 +129,7 @@ class PartialBase(Generic[T_Model]):
         partial_model = cls.get_partial_model()
         for chunk in json_chunks:
             potential_object += chunk
-            obj = from_json(
-                (potential_object or "{}").encode(), partial_mode="on"
-            )
+            obj = from_json((potential_object.strip() or "{}").encode(), partial_mode="on")
             obj = partial_model.model_validate(obj, strict=None, **kwargs)
             yield obj
 
@@ -143,9 +141,7 @@ class PartialBase(Generic[T_Model]):
         partial_model = cls.get_partial_model()
         async for chunk in json_chunks:
             potential_object += chunk
-            obj = from_json(
-                (potential_object or "{}").encode(), partial_mode="on"
-            )
+            obj = from_json((potential_object.strip() or "{}").encode(), partial_mode="on")
             obj = partial_model.model_validate(obj, strict=None, **kwargs)
             yield obj
 
@@ -162,17 +158,32 @@ class PartialBase(Generic[T_Model]):
                     yield chunk.delta.partial_json
                 if mode == Mode.GEMINI_JSON:
                     yield chunk.text
+                if mode == Mode.GEMINI_TOOLS:
+                    # Gemini seems to return the entire function_call and not a chunk?
+                    import json
+
+                    resp = chunk.candidates[0].content.parts[0].function_call
+                    resp_dict = type(resp).to_dict(resp) # type:ignore
+                    if "args" in resp_dict:
+                        yield json.dumps(resp_dict["args"])
                 elif chunk.choices:
                     if mode == Mode.FUNCTIONS:
                         Mode.warn_mode_functions_deprecation()
                         if json_chunk := chunk.choices[0].delta.function_call.arguments:
                             yield json_chunk
-                    elif mode in {Mode.JSON, Mode.MD_JSON, Mode.JSON_SCHEMA}:
+                    elif mode in {
+                        Mode.JSON,
+                        Mode.MD_JSON,
+                        Mode.JSON_SCHEMA,
+                        Mode.CEREBRAS_JSON,
+                        Mode.FIREWORKS_JSON,
+                    }:
                         if json_chunk := chunk.choices[0].delta.content:
                             yield json_chunk
-                    elif mode in {Mode.TOOLS, Mode.TOOLS_STRICT}:
+                    elif mode in {Mode.TOOLS, Mode.TOOLS_STRICT, Mode.FIREWORKS_TOOLS}:
                         if json_chunk := chunk.choices[0].delta.tool_calls:
-                            yield json_chunk[0].function.arguments
+                            if json_chunk[0].function.arguments:
+                                yield json_chunk[0].function.arguments
                     else:
                         raise NotImplementedError(
                             f"Mode {mode} is not supported for MultiTask streaming"
@@ -196,12 +207,19 @@ class PartialBase(Generic[T_Model]):
                         Mode.warn_mode_functions_deprecation()
                         if json_chunk := chunk.choices[0].delta.function_call.arguments:
                             yield json_chunk
-                    elif mode in {Mode.JSON, Mode.MD_JSON, Mode.JSON_SCHEMA}:
+                    elif mode in {
+                        Mode.JSON,
+                        Mode.MD_JSON,
+                        Mode.JSON_SCHEMA,
+                        Mode.CEREBRAS_JSON,
+                        Mode.FIREWORKS_JSON,
+                    }:
                         if json_chunk := chunk.choices[0].delta.content:
                             yield json_chunk
-                    elif mode in {Mode.TOOLS, Mode.TOOLS_STRICT}:
+                    elif mode in {Mode.TOOLS, Mode.TOOLS_STRICT, Mode.FIREWORKS_TOOLS}:
                         if json_chunk := chunk.choices[0].delta.tool_calls:
-                            yield json_chunk[0].function.arguments
+                            if json_chunk[0].function.arguments:
+                                yield json_chunk[0].function.arguments
                     else:
                         raise NotImplementedError(
                             f"Mode {mode} is not supported for MultiTask streaming"

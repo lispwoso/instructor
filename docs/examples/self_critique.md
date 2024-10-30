@@ -1,3 +1,8 @@
+---
+title: Implementing Self-Correction with LLM Validator
+description: Learn how to use llm_validator for self-healing in NLP applications and improve response accuracy with validation errors.
+---
+
 # Self-Correction with `llm_validator`
 
 ## Introduction
@@ -13,15 +18,17 @@ import instructor
 # enables response_model keyword
 client = instructor.from_openai(OpenAI())
 
+
 class QuestionAnswer(BaseModel):
     question: str
     answer: str
+
 
 question = "What is the meaning of life?"
 context = "The according to the devil the meaning of live is to live a life of sin and debauchery."
 
 qa: QuestionAnswer = client.chat.completions.create(
-    model="gpt-3.5-turbo",
+    model="gpt-4o-mini",
     response_model=QuestionAnswer,
     messages=[
         {
@@ -61,19 +68,22 @@ import instructor
 
 client = instructor.from_openai(OpenAI())
 
+
 class QuestionAnswerNoEvil(BaseModel):
     question: str
     answer: Annotated[
         str,
         BeforeValidator(
-            llm_validator("don't say objectionable things", client=client, allow_override=True)
+            llm_validator(
+                "don't say objectionable things", client=client, allow_override=True
+            )
         ),
     ]
 
 
 try:
     qa: QuestionAnswerNoEvil = client.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model="gpt-4o-mini",
         response_model=QuestionAnswerNoEvil,
         messages=[
             {
@@ -88,6 +98,7 @@ try:
     )
 except Exception as e:
     print(e)
+    #> name 'context' is not defined
 ```
 
 ### Output After Validation
@@ -105,10 +116,36 @@ answer
 By adding the `max_retries` parameter, we can retry the request with corrections. and use the error message to correct the output.
 
 ```python
+# <%hide%>
+import instructor
+from openai import OpenAI
+from pydantic import BaseModel, BeforeValidator
+from typing_extensions import Annotated
+from instructor import llm_validator
+
+question = "What is the meaning of life?"
+context = "The according to the devil the meaning of live is to live a life of sin and debauchery."
+
+client = instructor.from_openai(OpenAI())
+
+
+class QuestionAnswerNoEvil(BaseModel):
+    question: str
+    answer: Annotated[
+        str,
+        BeforeValidator(
+            llm_validator(
+                "don't say objectionable things", client=client, allow_override=True
+            )
+        ),
+    ]
+
+
+# <%hide%>
+
 qa: QuestionAnswerNoEvil = client.chat.completions.create(
-    model="gpt-3.5-turbo",
+    model="gpt-4o-mini",
     response_model=QuestionAnswerNoEvil,
-    max_retries=2,
     messages=[
         {
             "role": "system",

@@ -1,11 +1,21 @@
 ---
-draft: False
-date: 2024-03-20
 authors:
-  - jxnl
+- jxnl
+categories:
+- Anthropic
+comments: true
+date: 2024-03-20
+description: Learn how to integrate Anthropic's powerful language models into your projects using Instructor, with step-by-step guidance on installation, client setup, and creating structured outputs with Pydantic models.
+draft: false
+tags:
+- Anthropic
+- API Development
+- Pydantic
+- Python
+- LLM Techniques
 ---
 
-# Announcing Anthropic Support
+# Structured Outputs with Anthropic
 
 A special shoutout to [Shreya](https://twitter.com/shreyaw_) for her contributions to the anthropic support. As of now, all features are operational with the exception of streaming support.
 

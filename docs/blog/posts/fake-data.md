@@ -1,8 +1,19 @@
 ---
-draft: False
-date: 2024-03-08
 authors:
-  - jxnl
+- jxnl
+categories:
+- Pydantic
+comments: true
+date: 2024-03-08
+description: Learn to generate synthetic data using Pydantic and OpenAI's models with
+  practical examples and configurations.
+draft: false
+tags:
+- Synthetic Data
+- Pydantic
+- OpenAI
+- Data Generation
+- Python
 ---
 
 # Simple Synthetic Data Generation
@@ -55,7 +66,7 @@ We might want to set examples as part of the prompt by leveraging Pydantics conf
 
 ```python
 from typing import Iterable
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import instructor
 from openai import OpenAI
 

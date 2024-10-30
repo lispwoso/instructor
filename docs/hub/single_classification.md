@@ -1,3 +1,8 @@
+---
+title: Single-Label Classification with OpenAI API
+description: Learn to implement single-label classification using the OpenAI API to classify text as SPAM or NOT_SPAM.
+---
+
 # Single-Label Classification
 
 IF you want to try this code with `instructor hub` you can pull it by running
@@ -20,6 +25,17 @@ client = instructor.from_openai(OpenAI())
 
 
 class ClassificationResponse(BaseModel):
+    """
+    A few-shot example of text classification:
+    
+    Examples:
+    - "Buy cheap watches now!": SPAM
+    - "Meeting at 3 PM in the conference room": NOT_SPAM
+    - "You've won a free iPhone! Click here": SPAM
+    - "Can you pick up some milk on your way home?": NOT_SPAM
+    - "Increase your followers by 10000 overnight!": SPAM
+    """
+
     label: Literal["SPAM", "NOT_SPAM"] = Field(
         ...,
         description="The predicted class label.",
@@ -29,12 +45,12 @@ class ClassificationResponse(BaseModel):
 def classify(data: str) -> ClassificationResponse:
     """Perform single-label classification on the input text."""
     return client.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model="gpt-4o-mini",
         response_model=ClassificationResponse,
         messages=[
             {
                 "role": "user",
-                "content": f"Classify the following text: {data}",
+                "content": f"Classify the following text: <text>{data}</text>",
             },
         ],
     )

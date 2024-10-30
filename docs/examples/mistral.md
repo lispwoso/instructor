@@ -1,3 +1,8 @@
+---
+title: Using MistralAI for Structured Outputs
+description: Learn how to use MistralAI models for inference, including setup, API key generation, and example code.
+---
+
 # Structured Outputs using Mistral
 You can now also use mistralai models for inference by using from_mistral.
 
@@ -21,10 +26,10 @@ export MISTRAL_API_KEY=<your-api-key>
 An example:
 ```python
 import os
-from pydantic import BaseModel, Field
-from typing import List
-from mistralai.client import MistralClient
+from pydantic import BaseModel
+from mistralai import Mistral
 from instructor import from_mistral, Mode
+
 
 class UserDetails(BaseModel):
     name: str
@@ -32,10 +37,14 @@ class UserDetails(BaseModel):
 
 
 # enables `response_model` in chat call
-client = MistralClient(api_key=os.environ.get("MISTRAL_API_KEY"))
+client = Mistral(api_key=os.environ.get("MISTRAL_API_KEY"))
 
-instructor_client = from_mistral(client=client, model="mistral-large-latest", 
-                                 mode=Mode.MISTRAL_TOOLS, max_tokens=1000)
+instructor_client = from_mistral(
+    client=client,
+    model="mistral-large-latest",
+    mode=Mode.MISTRAL_TOOLS,
+    max_tokens=1000,
+)
 
 resp = instructor_client.messages.create(
     response_model=UserDetails,
@@ -44,6 +53,7 @@ resp = instructor_client.messages.create(
 )
 
 print(resp)
+#> name='Jason' age=10
 
 # output: UserDetails(name='Jason', age=10)
 ```

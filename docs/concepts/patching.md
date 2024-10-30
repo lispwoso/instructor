@@ -1,3 +1,8 @@
+---
+title: Enhancing OpenAI Client Functionality with New Keywords
+description: Learn how to use new keywords for backward compatibility in the OpenAI client, improving functionality and structured output.
+---
+
 # Patching
 
 Instructor enhances client functionality with three new keywords for backwards compatibility. This allows use of the enhanced client as usual, with structured output benefits.
@@ -20,6 +25,27 @@ client = instructor.from_openai(OpenAI(), mode=instructor.Mode.TOOLS)
 ```
 
 ### Gemini Tool Calling
+
+Gemini supports tool calling for stuctured data extraction. Gemini tool calling requires `jsonref` to be installed.
+
+!!! warning "Limitations"
+Gemini tool calling comes with some known limitations:
+
+    - `strict` Pydantic validation can fail for integer/float and enum validations
+    - Gemini tool calling is incompatible with Pydantic schema customizations such as examples due to API limitations and may result in errors
+    - Gemini can sometimes call the wrong function name, resulting in malformed or invalid json
+    - Gemini tool calling could fail with enum and literal field types
+
+```python
+import instructor
+import google.generativeai as genai
+
+client = instructor.from_gemini(
+    genai.GenerativeModel(), mode=instructor.Mode.GEMINI_TOOLS
+)
+```
+
+### Gemini Vertex AI Tool Callin
 
 This method allows us to get structured output from Gemini via tool calling with the Vertex AI SDK.
 

@@ -1,6 +1,6 @@
-# Instructor: Structured LLM Outputs
+# Instructor, The Most Popular Library for Simple Structured Outputs
 
-Instructor is a Python library that makes it a breeze to work with structured outputs from large language models (LLMs). Built on top of Pydantic, it provides a simple, transparent, and user-friendly API to manage validation, retries, and streaming responses. Get ready to supercharge your LLM workflows!
+Instructor is the most popular Python library for working with structured outputs from large language models (LLMs), boasting over 600,000 monthly downloads. Built on top of Pydantic, it provides a simple, transparent, and user-friendly API to manage validation, retries, and streaming responses. Get ready to supercharge your LLM workflows with the community's top choice!
 
 [![Twitter Follow](https://img.shields.io/twitter/follow/jxnlco?style=social)](https://twitter.com/jxnlco)
 [![Discord](https://img.shields.io/discord/1192334452110659664?label=discord)](https://discord.gg/bD9YE9JArw)
@@ -8,7 +8,7 @@ Instructor is a Python library that makes it a breeze to work with structured ou
 
 ## Want your logo on our website?
 
-If your company use instructor a lot, we'd love to have your logo on our website! Please fill out [this form](https://q7gjsgfstrp.typeform.com/to/wluQlVVQ)
+If your company uses Instructor a lot, we'd love to have your logo on our website! Please fill out [this form](https://q7gjsgfstrp.typeform.com/to/wluQlVVQ)
 
 ## Key Features
 
@@ -46,7 +46,7 @@ client = instructor.from_openai(OpenAI())
 
 # Extract structured data from natural language
 user_info = client.chat.completions.create(
-    model="gpt-3.5-turbo",
+    model="gpt-4o-mini",
     response_model=UserInfo,
     messages=[{"role": "user", "content": "John Doe is 30 years old."}],
 )
@@ -56,6 +56,82 @@ print(user_info.name)
 print(user_info.age)
 #> 30
 ```
+
+### Using Hooks
+
+Instructor provides a powerful hooks system that allows you to intercept and log various stages of the LLM interaction process. Here's a simple example demonstrating how to use hooks:
+
+```python
+import instructor
+from openai import OpenAI
+from pydantic import BaseModel
+
+class UserInfo(BaseModel):
+    name: str
+    age: int
+
+# Initialize the OpenAI client with Instructor
+client = instructor.from_openai(OpenAI())
+
+# Define hook functions
+def log_kwargs(**kwargs):
+    print(f"Function called with kwargs: {kwargs}")
+
+def log_exception(exception: Exception):
+    print(f"An exception occurred: {str(exception)}")
+
+client.on("completion:kwargs", log_kwargs)
+client.on("completion:error", log_exception)
+
+user_info = client.chat.completions.create(
+    model="gpt-4o-mini",
+    response_model=UserInfo,
+    messages=[{"role": "user", "content": "Extract the user name: 'John is 20 years old'"}],
+)
+
+"""
+{
+        'args': (),
+        'kwargs': {
+            'messages': [
+                {
+                    'role': 'user',
+                    'content': "Extract the user name: 'John is 20 years old'",
+                }
+            ],
+            'model': 'gpt-4o-mini',
+            'tools': [
+                {
+                    'type': 'function',
+                    'function': {
+                        'name': 'UserInfo',
+                        'description': 'Correctly extracted `UserInfo` with all the required parameters with correct types',
+                        'parameters': {
+                            'properties': {
+                                'name': {'title': 'Name', 'type': 'string'},
+                                'age': {'title': 'Age', 'type': 'integer'},
+                            },
+                            'required': ['age', 'name'],
+                            'type': 'object',
+                        },
+                    },
+                }
+            ],
+            'tool_choice': {'type': 'function', 'function': {'name': 'UserInfo'}},
+        },
+    }
+"""
+
+print(f"Name: {user_info.name}, Age: {user_info.age}")
+#> Name: John, Age: 20
+``` 
+
+This example demonstrates:
+1. A pre-execution hook that logs all kwargs passed to the function.
+2. An exception hook that logs any exceptions that occur during execution.
+
+The hooks provide valuable insights into the function's inputs and any errors,
+enhancing debugging and monitoring capabilities.
 
 ### Using Anthropic Models
 
@@ -133,9 +209,10 @@ assert resp.age == 25
 ### Using Gemini Models
 
 Make sure you [install](https://ai.google.dev/api/python/google/generativeai#setup) the Google AI Python SDK. You should set a `GOOGLE_API_KEY` environment variable with your API key.
+Gemini tool calling also requires `jsonref` to be installed.
 
 ```
-pip install google-generativeai
+pip install google-generativeai jsonref
 ```
 
 ```python
@@ -158,7 +235,7 @@ client = instructor.from_gemini(
 )
 ```
 
-Alternatively, you can [call Gemini from the OpenAI client](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/call-gemini-using-openai-library#python).You'll have to setup [`gcloud`](https://cloud.google.com/docs/authentication/provide-credentials-adc#local-dev), get setup on Vertex AI, and install the Google Auth library.
+Alternatively, you can [call Gemini from the OpenAI client](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/call-gemini-using-openai-library#python). You'll have to setup [`gcloud`](https://cloud.google.com/docs/authentication/provide-credentials-adc#local-dev), get setup on Vertex AI, and install the Google Auth library.
 
 ```sh
 pip install google-auth
@@ -244,7 +321,7 @@ assert resp.age == 25
 
 ## Types are inferred correctly
 
-This was the dream of instructor but due to the patching of openai, it wasnt possible for me to get typing to work well. Now, with the new client, we can get typing to work well! We've also added a few `create_*` methods to make it easier to create iterables and partials, and to access the original completion.
+This was the dream of Instructor but due to the patching of OpenAI, it wasn't possible for me to get typing to work well. Now, with the new client, we can get typing to work well! We've also added a few `create_*` methods to make it easier to create iterables and partials, and to access the original completion.
 
 ### Calling `create`
 
@@ -423,7 +500,7 @@ for user in users:
 
 ## [Evals](https://github.com/jxnl/instructor/tree/main/tests/llm/test_openai/evals#how-to-contribute-writing-and-running-evaluation-tests)
 
-We invite you to contribute to evals in `pytest` as a way to monitor the quality of the OpenAI models and the `instructor` library. To get started check out the evals for [anthropic](https://github.com/jxnl/instructor/blob/main/tests/llm/test_anthropic/evals/test_simple.py) and [OpenAI](https://github.com/jxnl/instructor/tree/main/tests/llm/test_openai/evals#how-to-contribute-writing-and-running-evaluation-tests) and contribute your own evals in the form of pytest tests. These evals will be run once a week and the results will be posted.
+We invite you to contribute to evals in `pytest` as a way to monitor the quality of the OpenAI models and the `instructor` library. To get started check out the evals for [Anthropic](https://github.com/jxnl/instructor/blob/main/tests/llm/test_anthropic/evals/test_simple.py) and [OpenAI](https://github.com/jxnl/instructor/tree/main/tests/llm/test_openai/evals#how-to-contribute-writing-and-running-evaluation-tests) and contribute your own evals in the form of pytest tests. These evals will be run once a week and the results will be posted.
 
 ## Contributing
 
@@ -431,13 +508,13 @@ If you want to help, checkout some of the issues marked as `good-first-issue` or
 
 ## CLI
 
-We also provide some added CLI functionality for easy convinience:
+We also provide some added CLI functionality for easy convenience:
 
-- `instructor jobs` : This helps with the creation of fine-tuning jobs with OpenAI. Simple use `instructor jobs create-from-file --help` to get started creating your first fine-tuned GPT3.5 model
+- `instructor jobs` : This helps with the creation of fine-tuning jobs with OpenAI. Simple use `instructor jobs create-from-file --help` to get started creating your first fine-tuned GPT-3.5 model
 
 - `instructor files` : Manage your uploaded files with ease. You'll be able to create, delete and upload files all from the command line
 
-- `instructor usage` : Instead of heading to the OpenAI site each time, you can monitor your usage from the cli and filter by date and time period. Note that usage often takes ~5-10 minutes to update from OpenAI's side
+- `instructor usage` : Instead of heading to the OpenAI site each time, you can monitor your usage from the CLI and filter by date and time period. Note that usage often takes ~5-10 minutes to update from OpenAI's side
 
 ## License
 

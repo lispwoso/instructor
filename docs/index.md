@@ -1,4 +1,8 @@
-# Instructor, Generating Structure from LLMs
+---
+description: Easily extract structured data like JSON from LLMs with Instructor, designed for simplicity, control, and robust validation.
+---
+
+# Instructor, The Most Popular Library for Simple Structured Outputs
 
 _Structured outputs powered by llms. Designed for simplicity, transparency, and control._
 
@@ -13,27 +17,63 @@ Instructor makes it easy to get structured data like JSON from LLMs like GPT-3.5
 
 It stands out for its simplicity, transparency, and user-centric design, built on top of Pydantic. Instructor helps you manage [validation context](./concepts/reask_validation.md), retries with [Tenacity](./concepts/retrying.md), and streaming [Lists](./concepts/lists.md) and [Partial](./concepts/partial.md) responses.
 
-- Instructor provides support for a wide range of programming languages, including:
-  - [Python](https://python.useinstructor.com)
-  - [TypeScript](https://js.useinstructor.com)
-  - [Ruby](https://ruby.useinstructor.com)
-  - [Go](https://go.useinstructor.com)
-  - [Elixir](https://hex.pm/packages/instructor)
-  - [Rust](https://rust.useinstructor.com/)
+[:material-star: Star the Repo](https://github.com/jxnl/instructor){: .md-button .md-button--primary } [:material-book-open-variant: Cookbooks](./examples/index.md){: .md-button } [:material-lightbulb: Prompting Guide](./prompting/index.md){: .md-button }
 
-## Want your logo on our website?
+## Newsletter
 
-If your company use instructor a lot, we'd love to have your logo on our website! Please fill out [this form](https://q7gjsgfstrp.typeform.com/to/wluQlVVQ)
+If you want to be notified of tips, new blog posts, and research, subscribe to our newsletter. Here's what you can expect:
+
+- Updates on Instructor features and releases
+- Blog posts on AI and structured outputs
+- Tips and tricks from our community
+- Research in the field of LLMs and structured outputs
+- Information on AI development skills with Instructor
+
+Subscribe to our newsletter for updates on AI development. We provide content to keep you informed and help you use Instructor in projects.
+
+<iframe src="https://embeds.beehiiv.com/2faf420d-8480-4b6e-8d6f-9c5a105f917a?slim=true" data-test-id="beehiiv-embed" height="52" width="80%" frameborder="0" scrolling="no" style="margin: 0; border-radius: 0px !important; background-color: transparent;"></iframe>
 
 ## Why use Instructor?
 
-The question of using Instructor is fundamentally a question of why to use Pydantic.
+<div class="grid cards" markdown>
 
-1. **Powered by type hints** — Instructor is powered by Pydantic, which is powered by type hints. Schema validation, prompting is controlled by type annotations; less to learn, less code to write, and integrates with your IDE.
+- :material-code-tags: **Simple API with Full Prompt Control**
 
-2. **Customizable** — Pydantic is highly customizable. You can define your own validators, custom error messages, and more.
+    Instructor provides a straightforward API that gives you complete ownership and control over your prompts. This allows for fine-tuned customization and optimization of your LLM interactions.
 
-3. **Ecosystem** Pydantic is the most widely used data validation library for Python with over 100M downloads a month. It's used by FastAPI, Typer, and many other popular libraries.
+    [:octicons-arrow-right-16: Explore Concepts](./concepts/models.md)
+
+- :material-translate: **Multi-Language Support**
+
+    Simplify structured data extraction from LLMs with type hints and validation.
+
+    [:simple-python: Python](https://python.useinstructor.com) · [:simple-typescript: TypeScript](https://js.useinstructor.com) · [:simple-ruby: Ruby](https://ruby.useinstructor.com) · [:simple-go: Go](https://go.useinstructor.com) · [:simple-elixir: Elixir](https://hex.pm/packages/instructor) · [:simple-rust: Rust](https://rust.useinstructor.com)
+
+- :material-refresh: **Reasking and Validation**
+
+    Automatically reask the model when validation fails, ensuring high-quality outputs. Leverage Pydantic's validation for robust error handling.
+
+    [:octicons-arrow-right-16: Learn about Reasking](./concepts/reask_validation.md)
+
+- :material-repeat-variant: **Streaming Support**
+
+    Stream partial results and iterables with ease, allowing for real-time processing and improved responsiveness in your applications.
+
+    [:octicons-arrow-right-16: Learn about Streaming](./concepts/partial.md)
+
+- :material-code-braces: **Powered by Type Hints**
+
+    Leverage Pydantic for schema validation, prompting control, less code, and IDE integration.
+
+    [:octicons-arrow-right-16: Learn more](https://docs.pydantic.dev/)
+
+- :material-lightning-bolt: **Simplified LLM Interactions**
+
+    Support for [OpenAI](./hub/openai.md), [Anthropic](./hub/anthropic.md), [Google](./hub/google.md), [Vertex AI](./hub/vertexai.md), [Mistral/Mixtral](./hub/together.md), [Anyscale](./hub/anyscale.md), [Ollama](./hub/ollama.md), [llama-cpp-python](./hub/llama-cpp-python.md), [Cohere](./hub/cohere.md), [LiteLLM](./hub/litellm.md).
+
+    [:octicons-arrow-right-16: See Hub](./hub/index.md)
+
+</div>
 
 ## Getting Started
 
@@ -48,6 +88,17 @@ instructor docs [QUERY]
 ```
 
 You can also check out our [cookbooks](./examples/index.md) and [concepts](./concepts/models.md) to learn more about how to use Instructor.
+
+??? info "Make sure you've installed the dependencies for your specific client"
+
+    To keep the bundle size small, `instructor` only ships with the OpenAI client. Before using the other clients and their respective `from_xx` method, make sure you've installed the dependencies following the instructions below.
+
+    1. Anthropic : `pip install "instructor[anthropic]"`
+    2. Google Generative AI: `pip install "instructor[google-generativeai]"`
+    3. Vertex AI: `pip install "instructor[vertexai]"`
+    4. Cohere: `pip install "instructor[cohere]"`
+    5. Litellm: `pip install "instructor[litellm]"`
+    6. Mistral: `pip install "instructor[mistralai]"`
 
 Now, let's see Instructor in action with a simple example:
 
@@ -110,6 +161,83 @@ print(user_info.age)
 #> 30
 ```
 
+
+### Using Hooks
+
+Instructor provides a powerful hooks system that allows you to intercept and log various stages of the LLM interaction process. Here's a simple example demonstrating how to use hooks:
+
+```python
+import instructor
+from openai import OpenAI
+from pydantic import BaseModel
+
+class UserInfo(BaseModel):
+    name: str
+    age: int
+
+# Initialize the OpenAI client with Instructor
+client = instructor.from_openai(OpenAI())
+
+# Define hook functions
+def log_kwargs(**kwargs):
+    print(f"Function called with kwargs: {kwargs}")
+
+def log_exception(exception: Exception):
+    print(f"An exception occurred: {str(exception)}")
+
+client.on("completion:kwargs", log_kwargs)
+client.on("completion:error", log_exception)
+
+user_info = client.chat.completions.create(
+    model="gpt-3.5-turbo",
+    response_model=UserInfo,
+    messages=[{"role": "user", "content": "Extract the user name: 'John is 20 years old'"}],
+)
+
+"""
+{
+        'args': (),
+        'kwargs': {
+            'messages': [
+                {
+                    'role': 'user',
+                    'content': "Extract the user name: 'John is 20 years old'",
+                }
+            ],
+            'model': 'gpt-3.5-turbo',
+            'tools': [
+                {
+                    'type': 'function',
+                    'function': {
+                        'name': 'UserInfo',
+                        'description': 'Correctly extracted `UserInfo` with all the required parameters with correct types',
+                        'parameters': {
+                            'properties': {
+                                'name': {'title': 'Name', 'type': 'string'},
+                                'age': {'title': 'Age', 'type': 'integer'},
+                            },
+                            'required': ['age', 'name'],
+                            'type': 'object',
+                        },
+                    },
+                }
+            ],
+            'tool_choice': {'type': 'function', 'function': {'name': 'UserInfo'}},
+        },
+    }
+"""
+
+print(f"Name: {user_info.name}, Age: {user_info.age}")
+#> Name: John, Age: 20
+```
+
+This example demonstrates:
+1. A pre-execution hook that logs all kwargs passed to the function.
+2. An exception hook that logs any exceptions that occur during execution.
+
+The hooks provide valuable insights into the function's inputs and any errors,
+enhancing debugging and monitoring capabilities.
+
 ### Using Anthropic
 
 ```python
@@ -144,6 +272,10 @@ assert resp.age == 25
 ```
 
 ### Using Gemini
+
+The Vertex AI and Gemini Clients have different APIs. When using instructor with these clients, make sure to read the documentation for the specific client you're using to make sure you're using the correct methods.
+
+**Note**: Gemini Tool Calling is still in preview, and there are some limitations. You can learn more about them in the [Vertex AI examples notebook](../hub/vertexai.md). As of now, you cannot use tool calling with Gemini when you have multi-modal inputs (Eg. Images, Audio, Video), you must use the `JSON` mode equivalent for that client.
 
 #### Google AI
 
@@ -181,9 +313,67 @@ assert resp.name == "Jason"
 assert resp.age == 25
 ```
 
-#### Vertex AI
+??? info "Using Gemini's multi-modal capabilities with `google-generativeai`"
 
-**Note**: Gemini Tool Calling is still in preview, and there are some limitations. You can learn more about them in the [Vertex AI examples notebook](../hub/vertexai.md).
+    The `google.generativeai` library has a different API than the `vertexai` library. But, using `instructor`, working with multi-modal data is easy.
+
+    Here's a quick example of how to use an Audio file with `google-generativeai`. We've used this [recording](https://storage.googleapis.com/generativeai-downloads/data/State_of_the_Union_Address_30_January_1961.mp3) that's taken from the [Google Generative AI cookbook](https://github.com/google-gemini/cookbook/blob/main/quickstarts/Audio.ipynb)
+
+    For a more in-depth example, you can check out our guide to working with Gemini using the `google-generativeai` package [here](./examples/multi_modal_gemini.md).
+
+
+    ```python
+    import instructor
+    import google.generativeai as genai
+    from pydantic import BaseModel
+
+
+    client = instructor.from_gemini(
+        client=genai.GenerativeModel(
+            model_name="models/gemini-1.5-flash-latest",
+        ),
+        mode=instructor.Mode.GEMINI_JSON,  # (1)!
+    )
+
+    mp3_file = genai.upload_file("./sample.mp3")  # (2)!
+
+
+    class Description(BaseModel):
+        description: str
+
+
+    resp = client.create(
+        response_model=Description,
+        messages=[
+            {
+                "role": "user",
+                "content": "Summarize what's happening in this audio file and who the main speaker is",
+            },
+            {
+                "role": "user",
+                "content": mp3_file,  # (3)!
+            },
+        ],
+    )
+
+    print(resp)
+    #> description="The main speaker is President John F. Kennedy, and he's giving a
+    #> State of the Union address to a joint session of Congress. He begins by
+    #> acknowledging his fondness for the House of Representatives and his long
+    #> history with it. He then goes on to discuss the state of the economy,
+    #> highlighting the difficulties faced by Americans, such as unemployment and
+    #> low farm incomes. He also touches on the Cold War and the international
+    #> balance of payments. He speaks of the need to strengthen the US military,
+    #> and he also discusses the importance of international cooperation and the
+    #> need to address global issues like hunger and illiteracy. He ends by urging
+    #> his audience to work together to face the challenges that lie ahead."
+    ```
+
+    1. Make sure to set the mode to `GEMINI_JSON`, this is important because Tool Calling doesn't work with multi-modal inputs.
+    2. Use `genai.upload_file` to upload your file. If you've already uploaded the file, you can get it by using `genai.get_file`
+    3. Pass in the file object as any normal user message
+
+#### Vertex AI
 
 ```python
 import instructor
@@ -219,6 +409,95 @@ assert isinstance(resp, User)
 assert resp.name == "Jason"
 assert resp.age == 25
 ```
+
+??? info "Using Gemini's multi-modal capabilities with VertexAI"
+
+    We've most recently added support for multi-part file formats using google's `gm.Part` objects. This allows you to pass in additional information to the LLM about the data you'd like to see.
+
+    Here are two examples of how to use multi-part formats with Instructor.
+
+    We can combine multiple `gm.Part` objects into a single list and combine them into a single message to be sent to the LLM. Under the hood, we'll convert them into the appropriate format for Gemini.
+
+    ```python
+    import instructor
+    import vertexai.generative_models as gm  # type: ignore
+    from pydantic import BaseModel, Field
+
+    client = instructor.from_vertexai(gm.GenerativeModel("gemini-1.5-pro-001"))
+    content = [
+        "Order Details:",
+        gm.Part.from_text("Customer: Alice"),
+        gm.Part.from_text("Items:"),
+        "Name: Laptop, Price: 999.99",
+        "Name: Mouse, Price: 29.99",
+    ]
+
+
+    class Item(BaseModel):
+        name: str
+        price: float
+
+
+    class Order(BaseModel):
+        items: list[Item] = Field(..., default_factory=list)
+        customer: str
+
+
+    resp = client.create(
+        response_model=Order,
+        messages=[
+            {
+                "role": "user",
+                "content": content,
+            },
+        ],
+    )
+
+    print(resp)
+    #> items=[Item(name='Laptop', price=999.99), Item(name='Mouse', price=29.99)] customer='Alice'
+    ```
+
+    This is also the same for multi-modal responses when we want to work with images. In this example, we'll ask the LLM to describe an image and pass in the image as a `gm.Part` object.
+
+    ```python
+    import instructor
+    import vertexai.generative_models as gm  # type: ignore
+    from pydantic import BaseModel
+    import requests
+
+    client = instructor.from_vertexai(
+        gm.GenerativeModel("gemini-1.5-pro-001"), mode=instructor.Mode.VERTEXAI_JSON
+    )
+    content = [
+        gm.Part.from_text("Count the number of objects in the image."),
+        gm.Part.from_data(
+            bytes(
+                requests.get(
+                    "https://img.taste.com.au/Oq97xT-Q/taste/2016/11/blueberry-scones-75492-1.jpeg"
+                ).content
+            ),
+            "image/jpeg",
+        ),
+    ]
+
+
+    class Description(BaseModel):
+        description: str
+
+
+    resp = client.create(
+        response_model=Description,
+        messages=[
+            {
+                "role": "user",
+                "content": content,
+            },
+        ],
+    )
+
+    print(resp)
+    #> description='Seven blueberry scones sit inside a metal pie plate.'
+    ```
 
 ### Using Litellm
 
@@ -300,6 +579,78 @@ resp = client.chat.completions.create(
 
 assert resp.name == "Jason"
 assert resp.age == 25
+```
+
+### Using Cerebras
+
+For those who want to use the Cerebras models, you can use the `from_cerebras` method to patch the client. You can see their list of models [here](https://inference-docs.cerebras.ai/api-reference/models).
+
+```python
+from cerebras.cloud.sdk import Cerebras
+import instructor
+from pydantic import BaseModel
+import os
+
+client = Cerebras(
+    api_key=os.environ.get("CEREBRAS_API_KEY"),
+)
+client = instructor.from_cerebras(client)
+
+
+class User(BaseModel):
+    name: str
+    age: int
+
+
+resp = client.chat.completions.create(
+    model="llama3.1-70b",
+    response_model=User,
+    messages=[
+        {
+            "role": "user",
+            "content": "Extract Jason is 25 years old.",
+        }
+    ],
+)
+
+print(resp)
+#> name='Jason' age=25
+```
+
+### Using Fireworks
+
+For those who want to use the Fireworks models, you can use the `from_fireworks` method to patch the client. You can see their list of models [here](https://fireworks.ai/models).
+
+```python
+from fireworks.client import Fireworks
+import instructor
+from pydantic import BaseModel
+import os
+
+client = Fireworks(
+    api_key=os.environ.get("FIREWORKS_API_KEY"),
+)
+client = instructor.from_fireworks(client)
+
+
+class User(BaseModel):
+    name: str
+    age: int
+
+
+resp = client.chat.completions.create(
+    model="accounts/fireworks/models/llama-v3p2-1b-instruct",
+    response_model=User,
+    messages=[
+        {
+            "role": "user",
+            "content": "Extract Jason is 25 years old.",
+        }
+    ],
+)
+
+print(resp)
+#> name='Jason' age=25
 ```
 
 ## Correct Typing
@@ -480,6 +831,10 @@ for user in users:
 ```
 
 ![iterable](./blog/posts/img/iterable.png)
+
+## Templating
+
+Instructor also ships with [Jinja](https://palletsprojects.com/p/jinja/) templating support. Check out our docs on [templating](./concepts/templating.md) to learn about how to use it to its full potential.
 
 ## Validation
 
